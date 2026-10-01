@@ -10,9 +10,10 @@ Two controllers, neither addressed the way the m16 R2's are:
         0-26   rear light bar            27  power button      28  lid logo
         29/30  right / left fan          31-40  touchpad edge
 
-  * Keyboard (0d62:1bbc): whole-keyboard colour only.  A v5 global static effect
-    (`cc 80 01 ...`) sent as 64-byte feature reports; per-key records are not
-    known to work on this controller, so none are encoded here.
+  * Keyboard (0d62:1bbc): speaks the same v5 protocol as `protocol.v5`, so per-key
+    colour (`Keyboard`, `freealien key`) works with the m16 layout -- verified for
+    ESC/F1/F2.  `keyboard_static` below is the simpler whole-keyboard global
+    effect the owner's original tool used.
 
 Volatile only: nothing here saves to firmware.  Provenance is in CREDITS.md.
 """

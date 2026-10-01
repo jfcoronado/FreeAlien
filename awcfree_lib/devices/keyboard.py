@@ -17,6 +17,7 @@ from ..transport import HidrawDevice, find_hidraw
 
 VID = 0x0D62
 PID = 0xD2B1
+PID_AREA51 = 0x1BBC
 
 Rgb = tuple[int, int, int]
 
@@ -40,6 +41,9 @@ class Keyboard:
                               interface="00")
         if path is None:
             path = find_hidraw(VID, PID, descriptor_contains=_DESCRIPTOR_MARK)
+        if path is None:
+            # Alienware 16 Area-51 (AA16250) keyboard; same v5 report format.
+            path = find_hidraw(VID, PID_AREA51, descriptor_contains=_DESCRIPTOR_MARK)
         if path is None:
             raise DeviceNotFound(
                 f"no hidraw node for the keyboard controller {VID:04x}:{PID:04x}"
