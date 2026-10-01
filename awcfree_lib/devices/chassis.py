@@ -21,7 +21,7 @@ PID = 0x0551
 Rgb = tuple[int, int, int]
 
 
-def _is_area51() -> bool:
+def is_area51() -> bool:
     try:
         with open("/sys/class/dmi/id/product_name") as fh:
             return fh.read().strip() == area51.MODEL
@@ -43,7 +43,8 @@ class Chassis:
         if not self.area51:
             return (zone,)
         return {v4.ZONE_TOUCHPAD: area51.TOUCHPAD, v4.ZONE_LOGO: area51.LOGO,
-                v4.ZONE_POWER: area51.POWER}.get(zone, (zone,))
+                v4.ZONE_POWER: area51.POWER, area51.ZONE_BAR: area51.BAR,
+                area51.ZONE_FANS: area51.FANS}.get(zone, (zone,))
 
     def __init__(self, path: str | None = None) -> None:
         if path is None:
@@ -53,7 +54,7 @@ class Chassis:
                 f"no hidraw node for the chassis controller {VID:04x}:{PID:04x}"
             )
         self.dev = HidrawDevice(path, v4.LEN, label="chassis")
-        self.area51 = _is_area51()
+        self.area51 = is_area51()
 
     def __enter__(self) -> Chassis:
         self.dev.open()

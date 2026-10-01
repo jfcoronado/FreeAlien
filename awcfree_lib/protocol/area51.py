@@ -33,6 +33,11 @@ FANS = (29, 30)
 TOUCHPAD = tuple(range(31, 41))
 CHASSIS_LIGHTS = BAR + POWER + LOGO + FANS + TOUCHPAD
 
+#: Logical zones for the GUI and CLI.  They sit outside the controller's own zone
+#: numbering (and the m16's 0x00-0x04), so they cannot be mistaken for a raw id.
+ZONE_BAR = 0x20
+ZONE_FANS = 0x21
+
 #: The controller accepts at most this many ids per `03 23` selection.
 MAX_GROUP = 28
 

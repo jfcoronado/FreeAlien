@@ -73,3 +73,14 @@ def test_chassis_zones_translate_to_area51_lights():
     ch.dev.reset_mock()
     ch.area51 = False
     assert ch._lights(v4.ZONE_LOGO) == (v4.ZONE_LOGO,)
+
+
+def test_bar_and_fan_zones_map_to_their_lights():
+    from unittest.mock import Mock
+    from awcfree_lib.devices.chassis import Chassis
+    ch = Chassis("/dev/fake")
+    ch.dev = Mock()
+    ch.area51 = True
+    assert ch._lights(area51.ZONE_BAR) == tuple(range(27))
+    assert ch._lights(area51.ZONE_FANS) == (29, 30)
+    assert area51.ZONE_BAR not in (v4.ZONE_TOUCHPAD, v4.ZONE_LOGO, v4.ZONE_POWER)

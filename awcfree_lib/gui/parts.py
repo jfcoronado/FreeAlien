@@ -19,7 +19,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from ..protocol import v4, v5
+from ..devices.chassis import is_area51
+from ..protocol import area51, v4, v5
 
 
 @dataclass(frozen=True)
@@ -99,7 +100,31 @@ POWER = Part(
     caption="AC & battery colours",
 )
 
-ALL: tuple[Part, ...] = (KEYBOARD, TOUCHPAD, LOGO, POWER)
+# Alienware 16 Area-51 only: the rear light bar and the two fan rings.
+BAR = Part(
+    key="bar",
+    name="Rear bar",
+    zone=area51.ZONE_BAR,
+    effects=CHASSIS_EFFECTS,
+    pair_effects=CHASSIS_PAIR,
+    blurb="The light bar across the back of the laptop (27 lights).",
+    caption="Rear light bar",
+)
+
+FANS = Part(
+    key="fans",
+    name="Fans",
+    zone=area51.ZONE_FANS,
+    effects=CHASSIS_EFFECTS,
+    pair_effects=CHASSIS_PAIR,
+    blurb="The lighting around the left and right fans.",
+    caption="Left and right fans",
+)
+
+ALL: tuple[Part, ...] = (
+    (KEYBOARD, TOUCHPAD, LOGO, POWER, BAR, FANS) if is_area51()
+    else (KEYBOARD, TOUCHPAD, LOGO, POWER)
+)
 BY_KEY = {p.key: p for p in ALL}
 
 

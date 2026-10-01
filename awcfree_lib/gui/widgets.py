@@ -396,6 +396,18 @@ class ZoneCard(QFrame):
             inset = 5 if self.shape == "power" else 2
             paint_logo(p, box.adjusted(inset, inset, -inset, -inset))
             return
+        elif self.shape == "bar":
+            box = QRectF(area.left() + area.width() * 0.08, area.center().y() - 7,
+                         area.width() * 0.84, 14)
+            shape = QPainterPath()
+            shape.addRoundedRect(box, 7, 7)
+        elif self.shape == "fans":
+            size = min(area.height() - 8, area.width() * 0.4)
+            shape = QPainterPath()
+            for dx in (-0.5, 0.5):
+                ring = QRectF(0, 0, size, size)
+                ring.moveCenter(area.center() + QPointF(dx * (size + 10), 0))
+                shape.addEllipse(ring)
         else:
             box = QRectF(area.left() + area.width() * 0.14, area.top() + 3,
                          area.width() * 0.72, area.height() - 6)

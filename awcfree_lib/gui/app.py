@@ -20,6 +20,7 @@ from PyQt6.QtWidgets import (
 
 from .. import layout as kb_layout
 from ..devices import Chassis, Keyboard
+from ..devices.chassis import is_area51
 from ..errors import AwcfreeError
 from ..protocol import v4, v5
 from . import theme
@@ -365,7 +366,7 @@ class MainWindow(QWidget):
             box.addWidget(button)
             self.part_nav_buttons[part.key] = button
         box.addStretch(1)
-        foot = QLabel("M16 R2  ·  LINUX")
+        foot = QLabel(("AREA-51 AA16250" if is_area51() else "M16 R2") + "  ·  LINUX")
         foot.setObjectName("Hint")
         box.addWidget(foot)
         return rail
@@ -436,7 +437,7 @@ class MainWindow(QWidget):
         zrow.setSpacing(10)
         self.zone_cards: dict[int, ZoneCard] = {}
         shapes = {partdefs.TOUCHPAD.key: "pad", partdefs.LOGO.key: "head",
-                  partdefs.POWER.key: "power"}
+                  partdefs.POWER.key: "power", "bar": "bar", "fans": "fans"}
         for part in partdefs.ALL:
             if part.zone is None:
                 continue
