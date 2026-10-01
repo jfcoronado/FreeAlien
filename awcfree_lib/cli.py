@@ -15,8 +15,9 @@ from collections.abc import Sequence
 from . import layout
 from .canvas import Canvas
 from .devices import Chassis, Keyboard
+from .devices import area51 as area51_dev
 from .errors import AwcfreeError
-from .protocol import v4, v5
+from .protocol import area51, v4, v5
 from .transport import find_hidraw
 
 Rgb = tuple[int, int, int]
@@ -149,6 +150,8 @@ def cmd_install_udev(args) -> int:
         "# through the built-in i8042 keyboard, not through this device.\n"
         'SUBSYSTEM=="hidraw", KERNEL=="hidraw*", ATTRS{idVendor}=="0d62", '
         'ATTRS{idProduct}=="d2b1", ENV{ID_USB_INTERFACE_NUM}=="00", TAG+="uaccess"\n'
+        'SUBSYSTEM=="hidraw", KERNEL=="hidraw*", ATTRS{idVendor}=="0d62", '
+        'ATTRS{idProduct}=="1bbc", TAG+="uaccess"\n'
         'SUBSYSTEM=="hidraw", KERNEL=="hidraw*", ATTRS{idVendor}=="187c", '
         'ATTRS{idProduct}=="0551", TAG+="uaccess"\n'
     )
@@ -495,6 +498,24 @@ def cmd_off(args) -> int:
     return rc
 
 
+def cmd_area51(args) -> int:
+    """Alienware 16 Area-51: one colour on the keyboard and every chassis light."""
+    if args.dry_run:
+        for group in area51.chassis_all(args.colour):
+            for pkt in group:
+                print("elc", pkt.hex(" "))
+        for pkt in area51.keyboard_static(args.colour):
+            print("kb ", pkt.hex(" "))
+        return 0
+    area51_dev.check_model()
+    dev = area51_dev.Area51()
+    if args.part in ("all", "chassis"):
+        print(f"chassis: {dev.set_chassis(args.colour)} reports")
+    if args.part in ("all", "keyboard"):
+        print(f"keyboard: {dev.set_keyboard(args.colour)} reports")
+    return 0
+
+
 # --- argument wiring --------------------------------------------------------
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
@@ -511,6 +532,11 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("grid", help="show the canvas grid and any ambiguous cells").set_defaults(func=cmd_grid)
     sub.add_parser("probe", help="dump the controllers' raw replies").set_defaults(func=cmd_probe)
     sub.add_parser("off", help="everything black").set_defaults(func=cmd_off)
+
+    sp = sub.add_parser("area51", help="Alienware 16 Area-51: colour keyboard and chassis")
+    sp.add_argument("colour", type=parse_colour)
+    sp.add_argument("--part", choices=("all", "keyboard", "chassis"), default="all")
+    sp.set_defaults(func=cmd_area51)
 
     sp = sub.add_parser("static", help="one colour on every key")
     sp.add_argument("colour", type=parse_colour)

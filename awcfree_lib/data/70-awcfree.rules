@@ -7,3 +7,6 @@ SUBSYSTEM=="hidraw", KERNEL=="hidraw*", ATTRS{idVendor}=="0d62", ATTRS{idProduct
 
 # The AW-ELC chassis controller: touchpad, lid emblem, and power button.
 SUBSYSTEM=="hidraw", KERNEL=="hidraw*", ATTRS{idVendor}=="187c", ATTRS{idProduct}=="0551", TAG+="uaccess"
+
+# Alienware 16 Area-51 (AA16250) keyboard: whole-keyboard colour only.
+SUBSYSTEM=="hidraw", KERNEL=="hidraw*", ATTRS{idVendor}=="0d62", ATTRS{idProduct}=="1bbc", TAG+="uaccess"
