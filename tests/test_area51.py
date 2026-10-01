@@ -40,3 +40,16 @@ def test_keyboard_static_bytes_and_never_off():
     assert all(len(p) == v5.LEN for p in pk)
     with pytest.raises(ValueError):
         area51.keyboard_static((0, 0, 0), brightness=0)
+
+
+def test_effect_off_resets_static_first_on_area51_only():
+    from unittest.mock import Mock
+    from awcfree_lib.devices.keyboard import Keyboard
+    for is_area51, first in ((True, b"\xcc\x94"), (False, b"\xcc\x94")):
+        kb = Keyboard("/dev/fake")
+        kb.dev = Mock()
+        kb._area51 = is_area51
+        kb.effect_off()
+        sent = [c.args[0] for c in kb.dev.send_feature.call_args_list]
+        assert sent[-1] == v5.EFFECT_OFF
+        assert (any(p[:2] == b"\xcc\x80" and p[2] == 1 and p[3] == 7 for p in sent)) == is_area51

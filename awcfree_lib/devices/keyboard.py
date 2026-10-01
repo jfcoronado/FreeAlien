@@ -12,7 +12,7 @@ from collections.abc import Iterable, Mapping
 
 from .. import layout
 from ..errors import DeviceNotFound
-from ..protocol import v5
+from ..protocol import area51, v5
 from ..transport import HidrawDevice, find_hidraw
 
 VID = 0x0D62
@@ -35,6 +35,8 @@ class Keyboard:
     what the hardware last received.  `pending` is how many LEDs are dirty.
     """
 
+    _area51 = False  # set per instance; the default keeps dry-run instances valid
+
     def __init__(self, path: str | None = None, *, send_mask: bool = False) -> None:
         if path is None:
             path = find_hidraw(VID, PID, descriptor_contains=_DESCRIPTOR_MARK,
@@ -49,6 +51,7 @@ class Keyboard:
                 f"no hidraw node for the keyboard controller {VID:04x}:{PID:04x}"
             )
         self.dev = HidrawDevice(path, v5.LEN, label="keyboard")
+        self._area51 = path == find_hidraw(VID, PID_AREA51)
         # Whether to send the 180-slot LED enable mask alongside colours.  AWCC sends
         # it; per-key colour works without it, so it stays off to save three reports
         # per full refresh.  Turn it on if the controller ever ignores an LED.
@@ -180,6 +183,12 @@ class Keyboard:
     def effect_off(self) -> None:
         """Return to per-key control after `effect`."""
         self.handshake()
+        if self._area51:
+            # On the Area-51 keyboard the effect-off command alone leaves the
+            # backlight dark after a running hardware effect (observed on an
+            # AA16250); a static colour first returns the LEDs to a known state.
+            for pkt in area51.keyboard_static((0, 0, 0)):
+                self.dev.send_feature(pkt)
         self.dev.send_feature(v5.EFFECT_OFF)
         self.invalidate()
 
