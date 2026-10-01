@@ -109,6 +109,28 @@ The keyboard protocol addresses 92 LEDs; **85 correspond to physical keys on the
 measured ANSI keyboard**. Thermal availability depends on the model, firmware and
 kernel driver.
 
+### Alienware 16 Area-51 (AA16250)
+
+Reported working on the **Alienware 16 Area-51 AA16250** (keyboard `0d62:1bbc`,
+chassis `187c:0551`). FreeAlien detects this model from its
+DMI product name and adapts:
+
+- **Keyboard:** per-key colour with the m16 layout (every key lit, in a row-by-row
+  colour check), plus the Rainbow and Breathing effects. After running a hardware
+  effect, per-key control is restored automatically.
+- **Chassis:** the controller's zones are light IDs 0-40 here, so FreeAlien maps the
+  touchpad (31-40), lid emblem (28), power button (27), rear bar (0-26) and fans
+  (29-30). The GUI adds **Rear bar** and **Fans** parts on this model. The power
+  button takes one colour; per-state AC and battery profiles and *persist* are not
+  attempted.
+- **CLI:** `freealien area51 purple` colours the keyboard and every chassis light;
+  add `--part keyboard` or `--part chassis` to limit it.
+- **Not verified here:** the other keyboard effects (side wave, double wave, morph,
+  bounce), games, sounds and thermal controls.
+
+Chassis lighting IDs came from visual testing on one laptop. Please report
+differences on other Area-51 units.
+
 G-Mode, automatic fan curves and CPU tuning are not implemented. Keyboard Pulse
 and Laser effects are disabled because of unreliable behaviour. Some power-state
 names and unobserved chassis zones remain unverified. See
