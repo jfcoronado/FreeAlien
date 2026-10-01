@@ -12,7 +12,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from ..errors import DeviceNotFound
-from ..protocol import v4
+from ..protocol import area51, v4
 from ..transport import HidrawDevice, find_hidraw
 
 VID = 0x187C
@@ -21,8 +21,29 @@ PID = 0x0551
 Rgb = tuple[int, int, int]
 
 
+def _is_area51() -> bool:
+    try:
+        with open("/sys/class/dmi/id/product_name") as fh:
+            return fh.read().strip() == area51.MODEL
+    except OSError:
+        return False
+
+
 class Chassis:
-    """Touchpad, lid logo and power-button lighting."""
+    """Touchpad, lid logo and power-button lighting.
+
+    On the Alienware 16 Area-51 the controller's zone numbers are light ids, so the
+    m16's logical zones are translated to the real lights (`_lights`).
+    """
+
+    area51 = False  # per instance; the default keeps dry-run instances valid
+
+    def _lights(self, zone: int) -> tuple[int, ...]:
+        """The ids a logical zone addresses on this laptop."""
+        if not self.area51:
+            return (zone,)
+        return {v4.ZONE_TOUCHPAD: area51.TOUCHPAD, v4.ZONE_LOGO: area51.LOGO,
+                v4.ZONE_POWER: area51.POWER}.get(zone, (zone,))
 
     def __init__(self, path: str | None = None) -> None:
         if path is None:
@@ -32,6 +53,7 @@ class Chassis:
                 f"no hidraw node for the chassis controller {VID:04x}:{PID:04x}"
             )
         self.dev = HidrawDevice(path, v4.LEN, label="chassis")
+        self.area51 = _is_area51()
 
     def __enter__(self) -> Chassis:
         self.dev.open()
@@ -70,6 +92,10 @@ class Chassis:
     # --- zones -------------------------------------------------------------
     def static(self, zone_colours: dict[int, Rgb], *, persist: bool = False) -> int:
         """One flat colour per zone.  `persist` survives a reboot."""
+        if self.area51:
+            # Persisting is not verified on this laptop, so it is not attempted.
+            return sum(self._send(area51.chassis_group(self._lights(z), c))
+                       for z, c in zone_colours.items())
         return self._send(v4.static_sequence(zone_colours, persist=persist))
 
     def set_touchpad(self, colour: Rgb, *, persist: bool = False) -> int:
@@ -110,7 +136,8 @@ class Chassis:
                 duration if duration is not None else v4.DURATION_SPECTRUM_MEDIUM,
                 tempo if tempo is not None else v4.TEMPO_SPECTRUM,
             )
-        return self._send(v4.keyframe_sequence(zone, frames, persist=persist))
+        return self._send(v4.keyframe_sequence(
+            self._lights(zone), frames, persist=persist and not self.area51))
 
     def pulse(
         self, zone: int, colour: Rgb, *,
@@ -124,7 +151,8 @@ class Chassis:
         and a half times quicker than the stock software.
         """
         frames = [v4.keyframe(v4.ACTION_PULSE, colour, duration, tempo)]
-        return self._send(v4.keyframe_sequence(zone, frames, persist=persist))
+        return self._send(v4.keyframe_sequence(
+            self._lights(zone), frames, persist=persist and not self.area51))
 
     def spectrum(
         self, zone: int, *, duration: int = v4.DURATION_SPECTRUM_MEDIUM,
@@ -132,13 +160,15 @@ class Chassis:
     ) -> int:
         """The rainbow cycle, as a morph chain through seven hues."""
         frames = v4.spectrum_frames(v4.SPECTRUM_COLOURS, duration=duration)
-        return self._send(v4.keyframe_sequence(zone, frames, persist=persist))
+        return self._send(v4.keyframe_sequence(
+            self._lights(zone), frames, persist=persist and not self.area51))
 
     def brightness(self, level: int, zones: Sequence[int] | None = None) -> int:
         """`03 26` -- 0 to 255 across the given zones."""
         if zones is None:
             zones = v4.CHASSIS_ZONES
-        return self._send([v4.set_dim(level, list(zones))])
+        lights = [light for z in zones for light in self._lights(z)]
+        return self._send([v4.set_dim(level, lights)])
 
     def off(self, *, persist: bool = False) -> int:
         return self.static({z: (0, 0, 0) for z in v4.CHASSIS_ZONES}, persist=persist)
@@ -151,6 +181,8 @@ class Chassis:
         action is a morph take two colours; the rest take one.  These are written to
         the controller's own storage, so they persist with no `persist` flag.
         """
+        if self.area51:
+            return self.static({v4.ZONE_POWER: colours[0]})
         pid = v4.POWER_PROFILES[profile] if isinstance(profile, str) else profile
         return self._send(v4.power_profile_sequence(pid, colours))
 
@@ -160,6 +192,8 @@ class Chassis:
         This is the shape of AWCC's own flow, which writes white to the three AC
         profiles and the user's accent colour to the three battery ones.
         """
+        if self.area51:
+            return self.static({v4.ZONE_POWER: ac})
         written = 0
         for name, pid in v4.POWER_PROFILES.items():
             colour = ac if name.startswith("ac") else battery

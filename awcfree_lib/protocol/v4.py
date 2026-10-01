@@ -261,14 +261,15 @@ def static_sequence(
 
 
 def keyframe_sequence(
-    zone: int,
+    zone: int | Sequence[int],
     frames: Sequence[Sequence[int]],
     *,
     animation_id: int = ANIMATION_ID_VOLATILE,
     persist: bool = False,
 ) -> list[bytes]:
     """Run an arbitrary keyframe chain on one zone -- morph, spectrum, pulse."""
-    out = [animation(CTL_START, animation_id), zone_select([zone])]
+    zones = [zone] if isinstance(zone, int) else list(zone)
+    out = [animation(CTL_START, animation_id), zone_select(zones)]
     out += add_actions(frames)
     if persist:
         out += [animation(CTL_SAVE, animation_id), animation(CTL_SET_DEFAULT, animation_id)]

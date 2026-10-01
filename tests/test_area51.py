@@ -53,3 +53,23 @@ def test_effect_off_resets_static_first_on_area51_only():
         sent = [c.args[0] for c in kb.dev.send_feature.call_args_list]
         assert sent[-1] == v5.EFFECT_OFF
         assert (any(p[:2] == b"\xcc\x80" and p[2] == 1 and p[3] == 7 for p in sent)) == is_area51
+
+
+def test_chassis_zones_translate_to_area51_lights():
+    from unittest.mock import Mock
+    from awcfree_lib.devices.chassis import Chassis
+    ch = Chassis("/dev/fake")
+    ch.dev = Mock()
+    ch.area51 = True
+    assert ch._lights(v4.ZONE_TOUCHPAD) == tuple(range(31, 41))
+    assert ch._lights(v4.ZONE_LOGO) == (28,)
+    assert ch._lights(v4.ZONE_POWER) == (27,)
+    ch.set_touchpad((0, 255, 0))
+    sent = [c.args[0] for c in ch.dev.send_output.call_args_list]
+    assert sent == area51.chassis_group(tuple(range(31, 41)), (0, 255, 0))
+    ch.dev.reset_mock()
+    ch.set_logo((0, 0, 255), persist=True)  # persist is ignored on this laptop
+    assert [c.args[0][:2] for c in ch.dev.send_output.call_args_list][3] == b"\x03\x24"
+    ch.dev.reset_mock()
+    ch.area51 = False
+    assert ch._lights(v4.ZONE_LOGO) == (v4.ZONE_LOGO,)
